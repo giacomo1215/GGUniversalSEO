@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       GG Universal SEO
- * Plugin URI:        https://example.com/gg-universal-seo
+ * Plugin URI:        https://github.com/giacomo1215/gg-universal-seo
  * Description:       A universal SEO translation adapter. Manually input SEO Titles and Descriptions for specific locales, injected on the frontend by overriding the active SEO plugin or as a standalone fallback.
  * Version:           1.0.0
  * Author:            Giacomo Giorgi
