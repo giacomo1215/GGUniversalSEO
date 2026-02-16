@@ -153,6 +153,47 @@ final class Admin {
     }
 
     /**
+     * Handle the AJAX request to import TranslatePress locales.
+     *
+     * @return void
+     */
+    public function handle_import_tp_locales(): void {
+        check_ajax_referer( 'gg_seo_import_tp', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( __( 'Permission denied.', 'gg-universal-seo' ) );
+        }
+
+        $tp_languages = Helpers::get_translatepress_languages();
+
+        if ( empty( $tp_languages ) ) {
+            wp_send_json_error( __( 'TranslatePress is not active or has no languages configured.', 'gg-universal-seo' ) );
+        }
+
+        // Merge with existing locales (avoid duplicates).
+        $existing       = Helpers::get_supported_locales();
+        $existing_codes = array_column( $existing, 'code' );
+
+        foreach ( $tp_languages as $lang ) {
+            if ( ! in_array( $lang['code'], $existing_codes, true ) ) {
+                $existing[]       = $lang;
+                $existing_codes[] = $lang['code'];
+            }
+        }
+
+        update_option( self::OPTION_KEY, $existing );
+
+        wp_send_json_success( array(
+            'locales' => $existing,
+            'message' => sprintf(
+                /* translators: %d: number of languages */
+                __( 'Imported %d language(s) from TranslatePress.', 'gg-universal-seo' ),
+                count( $tp_languages )
+            ),
+        ) );
+    }
+
+    /**
      * Sanitize the locales array before saving.
      *
      * @param mixed $input Raw input from the form.
@@ -310,11 +351,19 @@ final class Admin {
             $code  = $locale['code'];
             $label = $locale['label'];
 
-            $title_key = Helpers::meta_key( $code, 'title' );
-            $desc_key  = Helpers::meta_key( $code, 'description' );
+            $title_key    = Helpers::meta_key( $code, 'title' );
+            $desc_key     = Helpers::meta_key( $code, 'description' );
+            $og_title_key = Helpers::meta_key( $code, 'og_title' );
+            $og_desc_key  = Helpers::meta_key( $code, 'og_description' );
+            $og_image_key = Helpers::meta_key( $code, 'og_image' );
+            $canon_key    = Helpers::meta_key( $code, 'canonical_url' );
 
-            $title_val = get_post_meta( $post->ID, $title_key, true );
-            $desc_val  = get_post_meta( $post->ID, $desc_key, true );
+            $title_val    = get_post_meta( $post->ID, $title_key, true );
+            $desc_val     = get_post_meta( $post->ID, $desc_key, true );
+            $og_title_val = get_post_meta( $post->ID, $og_title_key, true );
+            $og_desc_val  = get_post_meta( $post->ID, $og_desc_key, true );
+            $og_image_val = get_post_meta( $post->ID, $og_image_key, true );
+            $canon_val    = get_post_meta( $post->ID, $canon_key, true );
 
             ?>
             <fieldset class="gg-seo-locale-fieldset">
@@ -347,6 +396,66 @@ final class Admin {
                         class="large-text"
                     ><?php echo esc_textarea( is_string( $desc_val ) ? $desc_val : '' ); ?></textarea>
                 </p>
+
+                <details class="gg-seo-og-details">
+                    <summary><?php esc_html_e( 'Open Graph / Social & Canonical', 'gg-universal-seo' ); ?></summary>
+
+                    <p>
+                        <label for="<?php echo esc_attr( $og_title_key ); ?>">
+                            <?php esc_html_e( 'OG Title', 'gg-universal-seo' ); ?>
+                            <span class="description"><?php esc_html_e( '(falls back to SEO Title if empty)', 'gg-universal-seo' ); ?></span>
+                        </label><br />
+                        <input
+                            type="text"
+                            id="<?php echo esc_attr( $og_title_key ); ?>"
+                            name="<?php echo esc_attr( $og_title_key ); ?>"
+                            value="<?php echo esc_attr( is_string( $og_title_val ) ? $og_title_val : '' ); ?>"
+                            class="large-text"
+                        />
+                    </p>
+
+                    <p>
+                        <label for="<?php echo esc_attr( $og_desc_key ); ?>">
+                            <?php esc_html_e( 'OG Description', 'gg-universal-seo' ); ?>
+                            <span class="description"><?php esc_html_e( '(falls back to Meta Description if empty)', 'gg-universal-seo' ); ?></span>
+                        </label><br />
+                        <textarea
+                            id="<?php echo esc_attr( $og_desc_key ); ?>"
+                            name="<?php echo esc_attr( $og_desc_key ); ?>"
+                            rows="2"
+                            class="large-text"
+                        ><?php echo esc_textarea( is_string( $og_desc_val ) ? $og_desc_val : '' ); ?></textarea>
+                    </p>
+
+                    <p>
+                        <label for="<?php echo esc_attr( $og_image_key ); ?>">
+                            <?php esc_html_e( 'OG Image URL', 'gg-universal-seo' ); ?>
+                        </label><br />
+                        <input
+                            type="url"
+                            id="<?php echo esc_attr( $og_image_key ); ?>"
+                            name="<?php echo esc_attr( $og_image_key ); ?>"
+                            value="<?php echo esc_attr( is_string( $og_image_val ) ? $og_image_val : '' ); ?>"
+                            class="large-text"
+                            placeholder="https://…"
+                        />
+                    </p>
+
+                    <p>
+                        <label for="<?php echo esc_attr( $canon_key ); ?>">
+                            <?php esc_html_e( 'Canonical URL', 'gg-universal-seo' ); ?>
+                            <span class="description"><?php esc_html_e( '(leave empty for automatic)', 'gg-universal-seo' ); ?></span>
+                        </label><br />
+                        <input
+                            type="url"
+                            id="<?php echo esc_attr( $canon_key ); ?>"
+                            name="<?php echo esc_attr( $canon_key ); ?>"
+                            value="<?php echo esc_attr( is_string( $canon_val ) ? $canon_val : '' ); ?>"
+                            class="large-text"
+                            placeholder="https://…"
+                        />
+                    </p>
+                </details>
             </fieldset>
             <?php
         }
@@ -395,15 +504,34 @@ final class Admin {
         // 5. Save locale meta.
         $locales = Helpers::get_supported_locales();
 
+        // Fields that accept plain text.
+        $text_fields = array( 'title', 'description', 'og_title', 'og_description' );
+        // Fields that accept URLs.
+        $url_fields  = array( 'og_image', 'canonical_url' );
+
         foreach ( $locales as $locale ) {
             $code = $locale['code'];
 
-            foreach ( array( 'title', 'description' ) as $field ) {
+            foreach ( $text_fields as $field ) {
                 $meta_key = Helpers::meta_key( $code, $field );
 
                 // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce checked above.
                 $raw_value = isset( $_POST[ $meta_key ] ) ? wp_unslash( $_POST[ $meta_key ] ) : '';
                 $value     = sanitize_text_field( (string) $raw_value );
+
+                if ( '' !== $value ) {
+                    update_post_meta( $post_id, $meta_key, $value );
+                } else {
+                    delete_post_meta( $post_id, $meta_key );
+                }
+            }
+
+            foreach ( $url_fields as $field ) {
+                $meta_key = Helpers::meta_key( $code, $field );
+
+                // phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce checked above.
+                $raw_value = isset( $_POST[ $meta_key ] ) ? wp_unslash( $_POST[ $meta_key ] ) : '';
+                $value     = esc_url_raw( trim( (string) $raw_value ) );
 
                 if ( '' !== $value ) {
                     update_post_meta( $post_id, $meta_key, $value );

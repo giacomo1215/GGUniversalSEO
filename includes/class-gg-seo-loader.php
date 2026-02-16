@@ -11,6 +11,7 @@ namespace GG_Universal_SEO\Includes;
 
 use GG_Universal_SEO\Admin\Admin;
 use GG_Universal_SEO\Frontend\Frontend;
+use GG_Universal_SEO\Frontend\Overrides\BufferOverride;
 
 // Abort if called directly.
 if ( ! defined( 'ABSPATH' ) ) {
@@ -79,6 +80,9 @@ final class Loader {
         // Meta box.
         $this->add_action( 'add_meta_boxes', $admin, 'register_meta_box' );
         $this->add_action( 'save_post', $admin, 'save_meta_box', 10, 2 );
+
+        // AJAX: import TranslatePress locales.
+        $this->add_action( 'wp_ajax_gg_seo_import_tp_locales', $admin, 'handle_import_tp_locales' );
     }
 
     /**
@@ -89,6 +93,14 @@ final class Loader {
         // the queried object is available.
         $frontend = new Frontend();
         $this->add_action( 'wp', $frontend, 'register_seo_hooks' );
+
+        // Output-buffer override — captures the final HTML and forces
+        // our SEO values into the rendered tags. This is the safety
+        // net that guarantees overrides even when a SEO plugin
+        // (e.g. AIOSEO v4.9.3+) bypasses its own filters for
+        // non-default languages on multilingual sites.
+        $buffer = new BufferOverride();
+        $this->add_action( 'template_redirect', $buffer, 'maybe_start_buffer', 0 );
     }
 
     /*--------------------------------------------------------------

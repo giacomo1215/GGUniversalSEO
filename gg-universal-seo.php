@@ -3,7 +3,7 @@
  * Plugin Name:       GG Universal SEO
  * Plugin URI:        https://github.com/giacomo1215/gg-universal-seo
  * Description:       A universal SEO translation adapter. Manually input SEO Titles and Descriptions for specific locales, injected on the frontend by overriding the active SEO plugin or as a standalone fallback.
- * Version:           1.0.0
+ * Version:           1.1.0
  * Author:            Giacomo Giorgi
  * Author URI:        https://github.com/giacomo1215
  * License:           GPL-2.0+
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /*--------------------------------------------------------------
  * Constants
  *------------------------------------------------------------*/
-define( 'GG_SEO_VERSION', '1.0.0' );
+define( 'GG_SEO_VERSION', '1.1.0' );
 define( 'GG_SEO_PLUGIN_NAME', 'gg-universal-seo' );
 define( 'GG_SEO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'GG_SEO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -40,6 +40,7 @@ require_once GG_SEO_PLUGIN_DIR . 'includes/class-gg-seo-i18n.php';
 require_once GG_SEO_PLUGIN_DIR . 'includes/class-gg-seo-loader.php';
 require_once GG_SEO_PLUGIN_DIR . 'admin/class-gg-seo-admin.php';
 require_once GG_SEO_PLUGIN_DIR . 'public/class-gg-seo-public.php';
+require_once GG_SEO_PLUGIN_DIR . 'public/overrides/class-gg-seo-buffer-override.php';
 
 /*--------------------------------------------------------------
  * Activation / Deactivation

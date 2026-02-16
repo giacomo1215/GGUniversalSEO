@@ -67,3 +67,36 @@
 .gg-seo-locale-fieldset textarea.large-text {
     width: 100%;
 }
+
+/* Open Graph / Social details toggle */
+.gg-seo-og-details {
+    margin-top: 8px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 0 12px;
+    background: #fff;
+}
+
+.gg-seo-og-details summary {
+    cursor: pointer;
+    padding: 8px 0;
+    font-weight: 600;
+    font-size: 13px;
+    color: #2271b1;
+    user-select: none;
+}
+
+.gg-seo-og-details summary:hover {
+    color: #135e96;
+}
+
+.gg-seo-og-details[open] {
+    padding-bottom: 8px;
+}
+
+.gg-seo-og-details .description {
+    font-weight: 400;
+    font-style: italic;
+    color: #888;
+    font-size: 12px;
+}
