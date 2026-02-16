@@ -8,17 +8,18 @@
 ![Yoast SEO Compatible](https://img.shields.io/badge/Yoast%20SEO-Compatible-A4286A)
 ![RankMath Compatible](https://img.shields.io/badge/RankMath-Compatible-E44D26)
 ![AIOSEO Compatible](https://img.shields.io/badge/AIOSEO-Compatible-005AE0)
-![Version 1.0.0](https://img.shields.io/badge/Version-1.0.0-orange)
+![TranslatePress Free Compatible](https://img.shields.io/badge/TranslatePress-Free%20Compatible-1E9E4A)
+![Version 1.1.0](https://img.shields.io/badge/Version-1.1.0-orange)
 
 ---
 
-A lightweight WordPress plugin that lets you **manually set SEO Titles and Meta Descriptions for each language** on your site. It works alongside your existing SEO plugin (Yoast, RankMath, or AIOSEO) — or on its own if you don't use one.
+GG Universal SEO is a lightweight WordPress plugin designed for **TranslatePress (free versions)** that lets you **manually set SEO Titles, Meta Descriptions, Open Graph, Twitter, and Canonical URLs per language**. It integrates with your active SEO plugin (Yoast, RankMath, or AIOSEO) and falls back to native WordPress output if no SEO plugin is active.
 
 ---
 
 ## Why Use This Plugin?
 
-If your WordPress site serves content in **multiple languages**, your SEO metadata (page title, meta description) often stays in just one language. GG Universal SEO gives you a simple editor to write locale-specific SEO data for every page, post, or product — no complex translation plugin required.
+If your site uses TranslatePress Free to serve multiple languages, your SEO metadata often stays in the default language. GG Universal SEO provides a fast, editor-friendly way to **override SEO meta for each locale** without needing a premium translation add-on or custom templates.
 
 ---
 
@@ -30,60 +31,106 @@ If your WordPress site serves content in **multiple languages**, your SEO metada
 4. Click **Choose File**, select the `.zip` file you downloaded, then click **Install Now**.
 5. Once installed, click **Activate**.
 
-That's it — the plugin is ready to use.
-
 ---
 
-## How It Works
+## Full Feature Overview
 
-### Step 1 — Configure Your Languages
+### 1) Locale Management (Settings Page)
 
-Go to **Settings → GG Universal SEO**.
+Go to **Settings → GG Universal SEO** to define the locales you want to manage.
 
-Add the languages (locales) your site supports. For each one, enter:
+For each locale, enter:
 
 | Field | Example |
 |---|---|
 | **Locale Code** | `en_US`, `it_IT`, `fr_FR`, `de_DE` |
-| **Label** | English, Italiano, Français, Deutsch |
+| **Label** | English, Italiano, Francais, Deutsch |
 
-Click **Save Locales**.
+**How it works**
 
-### Step 2 — Write SEO Data Per Language
+- Locales are stored in the `gg_seo_supported_locales` option.
+- The plugin validates locale codes to allow only letters, numbers, `_` and `-`.
+- If no locale is configured, a default `en_US` entry is created on activation.
 
-Open any **Page**, **Post**, or **Product** in the editor. You'll see a new meta box called **"GG Universal SEO — Locale Overrides"**.
+### 2) TranslatePress Free Integration (One-click Import)
 
-For each language you configured, fill in:
+If TranslatePress Free is active, the settings page shows an **Import Languages from TranslatePress** button.
 
-- **SEO Title** — The page title shown in search engine results.
-- **Meta Description** — The short summary shown below the title in search results.
+**How it works**
 
-Save/update the post as usual.
+- The plugin reads TranslatePress published languages and their labels.
+- Imported locales are merged with existing ones (no duplicates).
+- This is an admin-only action secured by a nonce and capability check.
 
-### Step 3 — Automatic Frontend Injection
+### 3) Per-Post Locale Overrides (Meta Box)
 
-When a visitor views your site, the plugin:
+On **Pages**, **Posts**, and **WooCommerce Products**, you will see the meta box **"GG Universal SEO — Locale Overrides"**.
 
-1. Checks the **current locale** of the page (set by WordPress or your translation plugin).
-2. Looks up whether you've written SEO metadata for that locale.
-3. If a match is found, it **overrides** the title and description tags in the page's HTML.
+For each configured locale, you can enter:
 
-This happens automatically — no shortcodes, no template edits.
+- **SEO Title**
+- **Meta Description**
+- **OG Title** (falls back to SEO Title if empty)
+- **OG Description** (falls back to Meta Description if empty)
+- **OG Image URL**
+- **Canonical URL** (optional override)
 
----
+**How it works**
 
-## SEO Plugin Compatibility
+- Each field is stored as post meta with keys like `_gg_seo_en_US_title`.
+- Values are sanitized on save (text fields and URL fields separately).
+- If a field is empty, its meta key is removed so defaults can flow through.
 
-GG Universal SEO detects your active SEO plugin and hooks into the correct filters:
+### 4) Locale Detection (TranslatePress First)
 
-| SEO Plugin | Status |
+For each frontend request, the plugin determines the current locale in this order:
+
+1. TranslatePress (global `$TRP_LANGUAGE` or TranslatePress components)
+2. Polylang (`pll_current_language`)
+3. WPML (`ICL_LANGUAGE_CODE` with `wpml_locale` mapping)
+4. WordPress default (`get_locale()`)
+
+Only locales listed in your settings are used for overrides.
+
+### 5) SEO Plugin Compatibility (Adapter Layer)
+
+GG Universal SEO detects your active SEO plugin and attaches to its filters:
+
+| SEO Plugin | What gets overridden |
 |---|---|
-| **Yoast SEO** | ✅ Fully supported |
-| **RankMath** | ✅ Fully supported |
-| **All in One SEO (AIOSEO)** | ✅ Fully supported |
-| **No SEO plugin** | ✅ Works standalone (uses native WordPress title + meta tag) |
+| **Yoast SEO** | Title, description, canonical, OG title/desc/image, locale |
+| **RankMath** | Title, description, canonical, OG title/desc, og:locale |
+| **AIOSEO** | Title, description, OG, Twitter, canonical, og:locale, schema |
+| **None** | WordPress title + injected meta/OG/canonical tags |
 
-The plugin's Settings page also shows which SEO plugin it has detected.
+**How it works**
+
+- The plugin registers the correct filters after the queried object is available.
+- AIOSEO overrides run at very high priority to ensure final output wins.
+- Schema output is updated for language, title, and description when possible.
+
+### 6) Output Buffer Fallback (Guaranteed Override)
+
+Some SEO plugins bypass filters in multilingual contexts. To guarantee your overrides, the plugin includes a **buffer-based rewrite layer**.
+
+**How it works**
+
+- The plugin starts an output buffer on `template_redirect` (frontend only).
+- When HTML is flushed, it rewrites:
+	- `<title>`
+	- `<meta name="description">`
+	- Open Graph tags (title, description, image, locale, url)
+	- Twitter tags (title, description, image)
+	- `<link rel="canonical">`
+	- `<html lang="...">`
+- This runs only if there is at least one override value for the current locale.
+
+### 7) Standalone Mode (No SEO Plugin)
+
+If no SEO plugin is detected, GG Universal SEO still works:
+
+- It filters the WordPress document title.
+- It injects meta description, OG tags, and canonical URL into `<head>`.
 
 ---
 
@@ -91,18 +138,16 @@ The plugin's Settings page also shows which SEO plugin it has detected.
 
 - Pages
 - Posts
-- WooCommerce Products
+- WooCommerce Products (if WooCommerce is active)
 
 ---
 
 ## Uninstall / Cleanup
 
-If you delete the plugin through the WordPress admin, **all data is removed automatically**:
+When you delete the plugin via WordPress admin, all data is removed:
 
-- The saved locale configuration.
-- All per-post SEO title and description values.
-
-No leftover data in your database.
+- The saved locale configuration (`gg_seo_supported_locales`).
+- All per-post meta keys starting with `_gg_seo_`.
 
 ---
 
@@ -112,6 +157,7 @@ No leftover data in your database.
 |---|---|
 | WordPress | 5.6 |
 | PHP | 7.4 |
+| TranslatePress | Free versions supported |
 | WooCommerce | Optional (for Product support) |
 
 ---
